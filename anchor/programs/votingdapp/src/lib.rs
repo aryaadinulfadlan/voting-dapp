@@ -1,10 +1,18 @@
+#![allow(unexpected_cfgs)]
 use anchor_lang::prelude::*;
 
 declare_id!("JAVuBXeBZqXNtS73azhBDAoYaaAFfo4gWXoZe2e7Jf8H");
 
+#[derive(Accounts)]
+pub struct Initialize {}
 #[program]
 pub mod votingdapp {
     use super::*;
+
+    pub fn greet(_ctx: Context<Initialize>) -> Result<()> {
+        msg!("GM!");
+        Ok(())
+    }
 
     pub fn initialize_pool(
         ctx: Context<InitializePool>,
@@ -33,9 +41,9 @@ pub struct Pool {
     pub pool_end: u64,
     pub candidate_amount: u64,
 }
+// seeds = [b"pool".as_ref(), signer.key().as_ref()],
 #[derive(Accounts)]
 #[instruction(pool_id: u64)]
-// seeds = [b"pool".as_ref(), signer.key().as_ref()],
 pub struct InitializePool<'info> {
     #[account(mut)]
     pub signer: Signer<'info>,
