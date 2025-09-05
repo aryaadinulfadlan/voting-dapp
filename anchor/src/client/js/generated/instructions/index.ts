@@ -7,3 +7,4 @@
  */
 
 export * from './greet';
+export * from './initializePool';

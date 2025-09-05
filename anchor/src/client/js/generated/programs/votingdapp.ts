@@ -13,13 +13,41 @@ import {
   type Address,
   type ReadonlyUint8Array,
 } from 'gill';
-import { type ParsedGreetInstruction } from '../instructions';
+import {
+  type ParsedGreetInstruction,
+  type ParsedInitializePoolInstruction,
+} from '../instructions';
 
 export const VOTINGDAPP_PROGRAM_ADDRESS =
   'JAVuBXeBZqXNtS73azhBDAoYaaAFfo4gWXoZe2e7Jf8H' as Address<'JAVuBXeBZqXNtS73azhBDAoYaaAFfo4gWXoZe2e7Jf8H'>;
 
+export enum VotingdappAccount {
+  Pool,
+}
+
+export function identifyVotingdappAccount(
+  account: { data: ReadonlyUint8Array } | ReadonlyUint8Array
+): VotingdappAccount {
+  const data = 'data' in account ? account.data : account;
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([241, 154, 109, 4, 17, 177, 109, 188])
+      ),
+      0
+    )
+  ) {
+    return VotingdappAccount.Pool;
+  }
+  throw new Error(
+    'The provided account could not be identified as a votingdapp account.'
+  );
+}
+
 export enum VotingdappInstruction {
   Greet,
+  InitializePool,
 }
 
 export function identifyVotingdappInstruction(
@@ -37,6 +65,17 @@ export function identifyVotingdappInstruction(
   ) {
     return VotingdappInstruction.Greet;
   }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([95, 180, 10, 172, 84, 174, 232, 40])
+      ),
+      0
+    )
+  ) {
+    return VotingdappInstruction.InitializePool;
+  }
   throw new Error(
     'The provided instruction could not be identified as a votingdapp instruction.'
   );
@@ -44,6 +83,10 @@ export function identifyVotingdappInstruction(
 
 export type ParsedVotingdappInstruction<
   TProgram extends string = 'JAVuBXeBZqXNtS73azhBDAoYaaAFfo4gWXoZe2e7Jf8H',
-> = {
-  instructionType: VotingdappInstruction.Greet;
-} & ParsedGreetInstruction<TProgram>;
+> =
+  | ({
+      instructionType: VotingdappInstruction.Greet;
+    } & ParsedGreetInstruction<TProgram>)
+  | ({
+      instructionType: VotingdappInstruction.InitializePool;
+    } & ParsedInitializePoolInstruction<TProgram>);
