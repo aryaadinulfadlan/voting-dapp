@@ -29,6 +29,20 @@ pub mod votingdapp {
         pool.candidate_amount = 0;
         Ok(())
     }
+
+    pub fn initialize_candidate(
+        ctx: Context<InitializeCandidate>,
+        candidate_name: String,
+        _pool_id: u64
+    ) -> Result<()> {
+        let candidate = &mut ctx.accounts.candidate;
+        let pool = &mut ctx.accounts.pool;
+        pool.candidate_amount += 1;
+        candidate.candidate_name = candidate_name;
+        candidate.candidate_votes = 0;
+        Ok(())
+    }
+
 }
 
 #[account]
@@ -57,3 +71,33 @@ pub struct InitializePool<'info> {
     pub pool: Account<'info, Pool>,
     pub system_program: Program<'info, System>,
 }
+
+#[account]
+#[derive(InitSpace)]
+pub struct Candidate {
+    #[max_len(20)]
+    pub candidate_name: String,
+    pub candidate_votes: u64,
+}
+#[derive(Accounts)]
+#[instruction(candidate_name: String, pool_id: u64)]
+pub struct InitializeCandidate<'info> {
+    #[account(mut)]
+    pub signer: Signer<'info>,
+    #[account(
+        mut,
+        seeds = [pool_id.to_le_bytes().as_ref()],
+        bump,
+    )]
+    pub pool: Account<'info, Pool>,
+    #[account(
+        init_if_needed,
+        payer = signer,
+        space = 8 + Candidate::INIT_SPACE,
+        seeds = [pool_id.to_le_bytes().as_ref(), candidate_name.as_bytes()],
+        bump,
+    )]
+    pub candidate: Account<'info, Candidate>,
+    pub system_program: Program<'info, System>,
+}
+
