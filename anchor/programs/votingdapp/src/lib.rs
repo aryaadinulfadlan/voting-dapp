@@ -43,6 +43,15 @@ pub mod votingdapp {
         Ok(())
     }
 
+    pub fn vote(
+        ctx: Context<Vote>,
+        _candidate_name: String,
+        _pool_id: u64
+    ) -> Result<()> {
+        let candidate = &mut ctx.accounts.candidate;
+        candidate.candidate_votes += 1;
+        Ok(())
+    }
 }
 
 #[account]
@@ -101,3 +110,19 @@ pub struct InitializeCandidate<'info> {
     pub system_program: Program<'info, System>,
 }
 
+#[derive(Accounts)]
+#[instruction(candidate_name: String, pool_id: u64)]
+pub struct Vote<'info> {
+    pub signer: Signer<'info>,
+    #[account(
+        seeds = [pool_id.to_le_bytes().as_ref()],
+        bump,
+    )]
+    pub pool: Account<'info, Pool>,
+    #[account(
+        mut,
+        seeds = [pool_id.to_le_bytes().as_ref(), candidate_name.as_bytes()],
+        bump,
+    )]
+    pub candidate: Account<'info, Candidate>,
+}
