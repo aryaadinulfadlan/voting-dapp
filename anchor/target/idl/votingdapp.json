@@ -41,13 +41,22 @@
           "signer": true
         },
         {
-          "name": "pool",
+          "name": "poll_account",
           "writable": true,
           "pda": {
             "seeds": [
               {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  108,
+                  108
+                ]
+              },
+              {
                 "kind": "arg",
-                "path": "pool_id"
+                "path": "poll_id"
               }
             ]
           }
@@ -59,19 +68,23 @@
       ],
       "args": [
         {
-          "name": "pool_id",
+          "name": "poll_id",
           "type": "u64"
+        },
+        {
+          "name": "name",
+          "type": "string"
         },
         {
           "name": "description",
           "type": "string"
         },
         {
-          "name": "pool_start",
+          "name": "start_time",
           "type": "u64"
         },
         {
-          "name": "pool_end",
+          "name": "end_time",
           "type": "u64"
         }
       ]
@@ -79,43 +92,47 @@
   ],
   "accounts": [
     {
-      "name": "Pool",
+      "name": "PollAccount",
       "discriminator": [
-        241,
-        154,
         109,
-        4,
-        17,
-        177,
-        109,
-        188
+        254,
+        117,
+        41,
+        232,
+        74,
+        172,
+        45
       ]
     }
   ],
   "types": [
     {
-      "name": "Pool",
+      "name": "PollAccount",
       "type": {
         "kind": "struct",
         "fields": [
           {
-            "name": "pool_id",
+            "name": "poll_id",
             "type": "u64"
           },
           {
-            "name": "description",
+            "name": "poll_name",
             "type": "string"
           },
           {
-            "name": "pool_start",
+            "name": "poll_description",
+            "type": "string"
+          },
+          {
+            "name": "poll_voting_start",
             "type": "u64"
           },
           {
-            "name": "pool_end",
+            "name": "poll_voting_end",
             "type": "u64"
           },
           {
-            "name": "candidate_amount",
+            "name": "poll_option_index",
             "type": "u64"
           }
         ]

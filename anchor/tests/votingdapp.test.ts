@@ -8,7 +8,7 @@ import {
   KeyPairSigner,
   signTransactionMessageWithSigners,
 } from 'gill'
-import { fetchPool, getGreetInstruction, getInitializePoolInstruction, VOTINGDAPP_PROGRAM_ADDRESS } from '../src'
+import { fetchPollAccount, getGreetInstruction, getInitializePoolInstruction, VOTINGDAPP_PROGRAM_ADDRESS } from '../src'
 import { loadKeypairSignerFromFile } from 'gill/node'
 
 const { rpc, sendAndConfirmTransaction } = createSolanaClient({ urlOrMoniker: process.env.ANCHOR_PROVIDER_URL! })
@@ -30,35 +30,38 @@ describe('votingdapp', () => {
     expect(sx).toBeDefined()
   })
 
-  it('should initialize the pool', async () => {
-    expect.assertions(5)
-    const poolId = 1n
-    const description = 'Unit test pool (gill)'
+  it('should initialize the poll', async () => {
+    expect.assertions(6)
+    const pollId = 1n
+    const name = 'Unit test pool'
+    const description = 'Desc of unit test pool (gill)'
     const nowSec = BigInt(Math.floor(Date.now() / 1000))
-    const poolStart = nowSec + 60n
-    const poolEnd = nowSec + 3600n
+    const startTime = nowSec + 60n
+    const endTime = nowSec + 3600n
 
     const [poolPda] = await getProgramDerivedAddress({
       programAddress: VOTINGDAPP_PROGRAM_ADDRESS,
-      seeds: [getU64Encoder().encode(poolId)],
+      seeds: [Buffer.from('poll'), getU64Encoder().encode(pollId)],
     })
     const ix = getInitializePoolInstruction({
       signer: payer,
-      pool: poolPda,
-      poolId,
+      pollAccount: poolPda,
+      pollId,
+      name,
       description,
-      poolStart,
-      poolEnd,
+      startTime,
+      endTime,
     })
     const sx = await sendAndConfirm({ ix, payer })
     expect(sx).toBeDefined()
     // const { value: accountInfo } = await rpc.getAccountInfo(poolPda, { encoding: 'base64' }).send()
     // expect(accountInfo).not.toBeNull()
-    const currentPool = await fetchPool(rpc, poolPda)
-    expect(currentPool.data.poolId).toEqual(poolId)
-    expect(currentPool.data.description).toEqual(description)
-    expect(currentPool.data.poolStart).toEqual(poolStart)
-    expect(currentPool.data.poolEnd).toEqual(poolEnd)
+    const currentPool = await fetchPollAccount(rpc, poolPda)
+    expect(currentPool.data.pollId).toEqual(pollId)
+    expect(currentPool.data.pollName).toEqual(name)
+    expect(currentPool.data.pollDescription).toEqual(description)
+    expect(currentPool.data.pollVotingStart).toEqual(startTime)
+    expect(currentPool.data.pollVotingEnd).toEqual(endTime)
   })
 })
 

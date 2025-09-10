@@ -47,13 +47,22 @@ export type Votingdapp = {
           "signer": true
         },
         {
-          "name": "pool",
+          "name": "pollAccount",
           "writable": true,
           "pda": {
             "seeds": [
               {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  108,
+                  108
+                ]
+              },
+              {
                 "kind": "arg",
-                "path": "poolId"
+                "path": "pollId"
               }
             ]
           }
@@ -65,19 +74,23 @@ export type Votingdapp = {
       ],
       "args": [
         {
-          "name": "poolId",
+          "name": "pollId",
           "type": "u64"
+        },
+        {
+          "name": "name",
+          "type": "string"
         },
         {
           "name": "description",
           "type": "string"
         },
         {
-          "name": "poolStart",
+          "name": "startTime",
           "type": "u64"
         },
         {
-          "name": "poolEnd",
+          "name": "endTime",
           "type": "u64"
         }
       ]
@@ -85,43 +98,47 @@ export type Votingdapp = {
   ],
   "accounts": [
     {
-      "name": "pool",
+      "name": "pollAccount",
       "discriminator": [
-        241,
-        154,
         109,
-        4,
-        17,
-        177,
-        109,
-        188
+        254,
+        117,
+        41,
+        232,
+        74,
+        172,
+        45
       ]
     }
   ],
   "types": [
     {
-      "name": "pool",
+      "name": "pollAccount",
       "type": {
         "kind": "struct",
         "fields": [
           {
-            "name": "poolId",
+            "name": "pollId",
             "type": "u64"
           },
           {
-            "name": "description",
+            "name": "pollName",
             "type": "string"
           },
           {
-            "name": "poolStart",
+            "name": "pollDescription",
+            "type": "string"
+          },
+          {
+            "name": "pollVotingStart",
             "type": "u64"
           },
           {
-            "name": "poolEnd",
+            "name": "pollVotingEnd",
             "type": "u64"
           },
           {
-            "name": "candidateAmount",
+            "name": "pollOptionIndex",
             "type": "u64"
           }
         ]

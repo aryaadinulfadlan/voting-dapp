@@ -59,7 +59,7 @@ export function getInitializePoolDiscriminatorBytes() {
 export type InitializePoolInstruction<
   TProgram extends string = typeof VOTINGDAPP_PROGRAM_ADDRESS,
   TAccountSigner extends string | AccountMeta<string> = string,
-  TAccountPool extends string | AccountMeta<string> = string,
+  TAccountPollAccount extends string | AccountMeta<string> = string,
   TAccountSystemProgram extends
     | string
     | AccountMeta<string> = '11111111111111111111111111111111',
@@ -72,9 +72,9 @@ export type InitializePoolInstruction<
         ? WritableSignerAccount<TAccountSigner> &
             AccountSignerMeta<TAccountSigner>
         : TAccountSigner,
-      TAccountPool extends string
-        ? WritableAccount<TAccountPool>
-        : TAccountPool,
+      TAccountPollAccount extends string
+        ? WritableAccount<TAccountPollAccount>
+        : TAccountPollAccount,
       TAccountSystemProgram extends string
         ? ReadonlyAccount<TAccountSystemProgram>
         : TAccountSystemProgram,
@@ -84,27 +84,30 @@ export type InitializePoolInstruction<
 
 export type InitializePoolInstructionData = {
   discriminator: ReadonlyUint8Array;
-  poolId: bigint;
+  pollId: bigint;
+  name: string;
   description: string;
-  poolStart: bigint;
-  poolEnd: bigint;
+  startTime: bigint;
+  endTime: bigint;
 };
 
 export type InitializePoolInstructionDataArgs = {
-  poolId: number | bigint;
+  pollId: number | bigint;
+  name: string;
   description: string;
-  poolStart: number | bigint;
-  poolEnd: number | bigint;
+  startTime: number | bigint;
+  endTime: number | bigint;
 };
 
 export function getInitializePoolInstructionDataEncoder(): Encoder<InitializePoolInstructionDataArgs> {
   return transformEncoder(
     getStructEncoder([
       ['discriminator', fixEncoderSize(getBytesEncoder(), 8)],
-      ['poolId', getU64Encoder()],
+      ['pollId', getU64Encoder()],
+      ['name', addEncoderSizePrefix(getUtf8Encoder(), getU32Encoder())],
       ['description', addEncoderSizePrefix(getUtf8Encoder(), getU32Encoder())],
-      ['poolStart', getU64Encoder()],
-      ['poolEnd', getU64Encoder()],
+      ['startTime', getU64Encoder()],
+      ['endTime', getU64Encoder()],
     ]),
     (value) => ({ ...value, discriminator: INITIALIZE_POOL_DISCRIMINATOR })
   );
@@ -113,10 +116,11 @@ export function getInitializePoolInstructionDataEncoder(): Encoder<InitializePoo
 export function getInitializePoolInstructionDataDecoder(): Decoder<InitializePoolInstructionData> {
   return getStructDecoder([
     ['discriminator', fixDecoderSize(getBytesDecoder(), 8)],
-    ['poolId', getU64Decoder()],
+    ['pollId', getU64Decoder()],
+    ['name', addDecoderSizePrefix(getUtf8Decoder(), getU32Decoder())],
     ['description', addDecoderSizePrefix(getUtf8Decoder(), getU32Decoder())],
-    ['poolStart', getU64Decoder()],
-    ['poolEnd', getU64Decoder()],
+    ['startTime', getU64Decoder()],
+    ['endTime', getU64Decoder()],
   ]);
 }
 
@@ -132,27 +136,28 @@ export function getInitializePoolInstructionDataCodec(): Codec<
 
 export type InitializePoolAsyncInput<
   TAccountSigner extends string = string,
-  TAccountPool extends string = string,
+  TAccountPollAccount extends string = string,
   TAccountSystemProgram extends string = string,
 > = {
   signer: TransactionSigner<TAccountSigner>;
-  pool?: Address<TAccountPool>;
+  pollAccount?: Address<TAccountPollAccount>;
   systemProgram?: Address<TAccountSystemProgram>;
-  poolId: InitializePoolInstructionDataArgs['poolId'];
+  pollId: InitializePoolInstructionDataArgs['pollId'];
+  name: InitializePoolInstructionDataArgs['name'];
   description: InitializePoolInstructionDataArgs['description'];
-  poolStart: InitializePoolInstructionDataArgs['poolStart'];
-  poolEnd: InitializePoolInstructionDataArgs['poolEnd'];
+  startTime: InitializePoolInstructionDataArgs['startTime'];
+  endTime: InitializePoolInstructionDataArgs['endTime'];
 };
 
 export async function getInitializePoolInstructionAsync<
   TAccountSigner extends string,
-  TAccountPool extends string,
+  TAccountPollAccount extends string,
   TAccountSystemProgram extends string,
   TProgramAddress extends Address = typeof VOTINGDAPP_PROGRAM_ADDRESS,
 >(
   input: InitializePoolAsyncInput<
     TAccountSigner,
-    TAccountPool,
+    TAccountPollAccount,
     TAccountSystemProgram
   >,
   config?: { programAddress?: TProgramAddress }
@@ -160,7 +165,7 @@ export async function getInitializePoolInstructionAsync<
   InitializePoolInstruction<
     TProgramAddress,
     TAccountSigner,
-    TAccountPool,
+    TAccountPollAccount,
     TAccountSystemProgram
   >
 > {
@@ -170,7 +175,7 @@ export async function getInitializePoolInstructionAsync<
   // Original accounts.
   const originalAccounts = {
     signer: { value: input.signer ?? null, isWritable: true },
-    pool: { value: input.pool ?? null, isWritable: true },
+    pollAccount: { value: input.pollAccount ?? null, isWritable: true },
     systemProgram: { value: input.systemProgram ?? null, isWritable: false },
   };
   const accounts = originalAccounts as Record<
@@ -182,10 +187,13 @@ export async function getInitializePoolInstructionAsync<
   const args = { ...input };
 
   // Resolve default values.
-  if (!accounts.pool.value) {
-    accounts.pool.value = await getProgramDerivedAddress({
+  if (!accounts.pollAccount.value) {
+    accounts.pollAccount.value = await getProgramDerivedAddress({
       programAddress,
-      seeds: [getU64Encoder().encode(expectSome(args.poolId))],
+      seeds: [
+        getBytesEncoder().encode(new Uint8Array([112, 111, 108, 108])),
+        getU64Encoder().encode(expectSome(args.pollId)),
+      ],
     });
   }
   if (!accounts.systemProgram.value) {
@@ -197,7 +205,7 @@ export async function getInitializePoolInstructionAsync<
   const instruction = {
     accounts: [
       getAccountMeta(accounts.signer),
-      getAccountMeta(accounts.pool),
+      getAccountMeta(accounts.pollAccount),
       getAccountMeta(accounts.systemProgram),
     ],
     programAddress,
@@ -207,7 +215,7 @@ export async function getInitializePoolInstructionAsync<
   } as InitializePoolInstruction<
     TProgramAddress,
     TAccountSigner,
-    TAccountPool,
+    TAccountPollAccount,
     TAccountSystemProgram
   >;
 
@@ -216,34 +224,35 @@ export async function getInitializePoolInstructionAsync<
 
 export type InitializePoolInput<
   TAccountSigner extends string = string,
-  TAccountPool extends string = string,
+  TAccountPollAccount extends string = string,
   TAccountSystemProgram extends string = string,
 > = {
   signer: TransactionSigner<TAccountSigner>;
-  pool: Address<TAccountPool>;
+  pollAccount: Address<TAccountPollAccount>;
   systemProgram?: Address<TAccountSystemProgram>;
-  poolId: InitializePoolInstructionDataArgs['poolId'];
+  pollId: InitializePoolInstructionDataArgs['pollId'];
+  name: InitializePoolInstructionDataArgs['name'];
   description: InitializePoolInstructionDataArgs['description'];
-  poolStart: InitializePoolInstructionDataArgs['poolStart'];
-  poolEnd: InitializePoolInstructionDataArgs['poolEnd'];
+  startTime: InitializePoolInstructionDataArgs['startTime'];
+  endTime: InitializePoolInstructionDataArgs['endTime'];
 };
 
 export function getInitializePoolInstruction<
   TAccountSigner extends string,
-  TAccountPool extends string,
+  TAccountPollAccount extends string,
   TAccountSystemProgram extends string,
   TProgramAddress extends Address = typeof VOTINGDAPP_PROGRAM_ADDRESS,
 >(
   input: InitializePoolInput<
     TAccountSigner,
-    TAccountPool,
+    TAccountPollAccount,
     TAccountSystemProgram
   >,
   config?: { programAddress?: TProgramAddress }
 ): InitializePoolInstruction<
   TProgramAddress,
   TAccountSigner,
-  TAccountPool,
+  TAccountPollAccount,
   TAccountSystemProgram
 > {
   // Program address.
@@ -252,7 +261,7 @@ export function getInitializePoolInstruction<
   // Original accounts.
   const originalAccounts = {
     signer: { value: input.signer ?? null, isWritable: true },
-    pool: { value: input.pool ?? null, isWritable: true },
+    pollAccount: { value: input.pollAccount ?? null, isWritable: true },
     systemProgram: { value: input.systemProgram ?? null, isWritable: false },
   };
   const accounts = originalAccounts as Record<
@@ -273,7 +282,7 @@ export function getInitializePoolInstruction<
   const instruction = {
     accounts: [
       getAccountMeta(accounts.signer),
-      getAccountMeta(accounts.pool),
+      getAccountMeta(accounts.pollAccount),
       getAccountMeta(accounts.systemProgram),
     ],
     programAddress,
@@ -283,7 +292,7 @@ export function getInitializePoolInstruction<
   } as InitializePoolInstruction<
     TProgramAddress,
     TAccountSigner,
-    TAccountPool,
+    TAccountPollAccount,
     TAccountSystemProgram
   >;
 
@@ -297,7 +306,7 @@ export type ParsedInitializePoolInstruction<
   programAddress: Address<TProgram>;
   accounts: {
     signer: TAccountMetas[0];
-    pool: TAccountMetas[1];
+    pollAccount: TAccountMetas[1];
     systemProgram: TAccountMetas[2];
   };
   data: InitializePoolInstructionData;
@@ -325,7 +334,7 @@ export function parseInitializePoolInstruction<
     programAddress: instruction.programAddress,
     accounts: {
       signer: getNextAccount(),
-      pool: getNextAccount(),
+      pollAccount: getNextAccount(),
       systemProgram: getNextAccount(),
     },
     data: getInitializePoolInstructionDataDecoder().decode(instruction.data),
