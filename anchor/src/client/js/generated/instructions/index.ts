@@ -7,4 +7,5 @@
  */
 
 export * from './greet';
+export * from './initializeCandidate';
 export * from './initializePool';

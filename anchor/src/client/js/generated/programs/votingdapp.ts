@@ -15,6 +15,7 @@ import {
 } from 'gill';
 import {
   type ParsedGreetInstruction,
+  type ParsedInitializeCandidateInstruction,
   type ParsedInitializePoolInstruction,
 } from '../instructions';
 
@@ -22,6 +23,7 @@ export const VOTINGDAPP_PROGRAM_ADDRESS =
   'JAVuBXeBZqXNtS73azhBDAoYaaAFfo4gWXoZe2e7Jf8H' as Address<'JAVuBXeBZqXNtS73azhBDAoYaaAFfo4gWXoZe2e7Jf8H'>;
 
 export enum VotingdappAccount {
+  CandidateAccount,
   PollAccount,
 }
 
@@ -29,6 +31,17 @@ export function identifyVotingdappAccount(
   account: { data: ReadonlyUint8Array } | ReadonlyUint8Array
 ): VotingdappAccount {
   const data = 'data' in account ? account.data : account;
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([69, 203, 73, 43, 203, 170, 96, 121])
+      ),
+      0
+    )
+  ) {
+    return VotingdappAccount.CandidateAccount;
+  }
   if (
     containsBytes(
       data,
@@ -47,6 +60,7 @@ export function identifyVotingdappAccount(
 
 export enum VotingdappInstruction {
   Greet,
+  InitializeCandidate,
   InitializePool,
 }
 
@@ -64,6 +78,17 @@ export function identifyVotingdappInstruction(
     )
   ) {
     return VotingdappInstruction.Greet;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([210, 107, 118, 204, 255, 97, 112, 26])
+      ),
+      0
+    )
+  ) {
+    return VotingdappInstruction.InitializeCandidate;
   }
   if (
     containsBytes(
@@ -87,6 +112,9 @@ export type ParsedVotingdappInstruction<
   | ({
       instructionType: VotingdappInstruction.Greet;
     } & ParsedGreetInstruction<TProgram>)
+  | ({
+      instructionType: VotingdappInstruction.InitializeCandidate;
+    } & ParsedInitializeCandidateInstruction<TProgram>)
   | ({
       instructionType: VotingdappInstruction.InitializePool;
     } & ParsedInitializePoolInstruction<TProgram>);

@@ -8,7 +8,14 @@ import {
   KeyPairSigner,
   signTransactionMessageWithSigners,
 } from 'gill'
-import { fetchPollAccount, getGreetInstruction, getInitializePoolInstruction, VOTINGDAPP_PROGRAM_ADDRESS } from '../src'
+import {
+  fetchCandidateAccount,
+  fetchPollAccount,
+  getGreetInstruction,
+  getInitializeCandidateInstruction,
+  getInitializePoolInstruction,
+  VOTINGDAPP_PROGRAM_ADDRESS,
+} from '../src'
 import { loadKeypairSignerFromFile } from 'gill/node'
 
 const { rpc, sendAndConfirmTransaction } = createSolanaClient({ urlOrMoniker: process.env.ANCHOR_PROVIDER_URL! })
@@ -62,6 +69,34 @@ describe('votingdapp', () => {
     expect(currentPool.data.pollDescription).toEqual(description)
     expect(currentPool.data.pollVotingStart).toEqual(startTime)
     expect(currentPool.data.pollVotingEnd).toEqual(endTime)
+  })
+
+  it('should initialize the candidate', async () => {
+    expect.assertions(3)
+    const pollId = 1n
+    const candidate = 'John'
+
+    const [candidatePda] = await getProgramDerivedAddress({
+      programAddress: VOTINGDAPP_PROGRAM_ADDRESS,
+      seeds: [getU64Encoder().encode(pollId), Buffer.from(candidate, 'utf8')],
+    })
+    const [poolPda] = await getProgramDerivedAddress({
+      programAddress: VOTINGDAPP_PROGRAM_ADDRESS,
+      seeds: [Buffer.from('poll', 'utf8'), getU64Encoder().encode(pollId)],
+    })
+    const ix = getInitializeCandidateInstruction({
+      signer: payer,
+      pollAccount: poolPda,
+      candidateAccount: candidatePda,
+      pollId,
+      candidate,
+    })
+    const sx = await sendAndConfirm({ ix, payer })
+    expect(sx).toBeDefined()
+    const currentPool = await fetchPollAccount(rpc, poolPda)
+    const currentCandidate = await fetchCandidateAccount(rpc, candidatePda)
+    expect(currentPool.data.pollId).toEqual(pollId)
+    expect(currentCandidate.data.candidateName).toEqual(candidate)
   })
 })
 

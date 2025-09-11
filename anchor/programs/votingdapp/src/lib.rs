@@ -33,14 +33,13 @@ pub mod votingdapp {
 
     pub fn initialize_candidate(
         ctx: Context<InitializeCandidate>,
-        candidate_name: String,
-        _pool_id: u64
+        _poll_id: u64,
+        candidate: String,
     ) -> Result<()> {
-        let candidate = &mut ctx.accounts.candidate;
-        let pool = &mut ctx.accounts.pool;
-        pool.candidate_amount += 1;
-        candidate.candidate_name = candidate_name;
-        candidate.candidate_votes = 0;
+        let candidate_account = &mut ctx.accounts.candidate_account;
+        let poll_account = &mut ctx.accounts.poll_account;
+        candidate_account.candidate_name = candidate;
+        poll_account.poll_option_index += 1;
         Ok(())
     }
 
@@ -82,33 +81,31 @@ pub struct InitializePoll<'info> {
     pub poll_account: Account<'info, PollAccount>,
     pub system_program: Program<'info, System>,
 }
+// seeds = [b"pool".as_ref(), signer.key().as_ref()],
+// seeds = [poll_id.to_le_bytes().as_ref()],
 
 #[account]
 #[derive(InitSpace)]
-pub struct Candidate {
+pub struct CandidateAccount {
     #[max_len(20)]
     pub candidate_name: String,
     pub candidate_votes: u64,
 }
 #[derive(Accounts)]
-#[instruction(candidate_name: String, pool_id: u64)]
+#[instruction(poll_id: u64, candidate: String)]
 pub struct InitializeCandidate<'info> {
     #[account(mut)]
     pub signer: Signer<'info>,
-    #[account(
-        mut,
-        seeds = [pool_id.to_le_bytes().as_ref()],
-        bump,
-    )]
-    pub pool: Account<'info, Pool>,
+    #[account(mut)]
+    pub poll_account: Account<'info, PollAccount>,
     #[account(
         init_if_needed,
         payer = signer,
-        space = 8 + Candidate::INIT_SPACE,
-        seeds = [pool_id.to_le_bytes().as_ref(), candidate_name.as_bytes()],
-        bump,
+        space = 8 + CandidateAccount::INIT_SPACE,
+        seeds = [poll_id.to_le_bytes().as_ref(), candidate.as_ref()],
+        bump
     )]
-    pub candidate: Account<'info, Candidate>,
+    pub candidate_account: Account<'info, CandidateAccount>,
     pub system_program: Program<'info, System>,
 }
 
