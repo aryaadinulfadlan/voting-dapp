@@ -14,6 +14,7 @@ import {
   getGreetInstruction,
   getInitializeCandidateInstruction,
   getInitializePoolInstruction,
+  getVoteInstruction,
   VOTINGDAPP_PROGRAM_ADDRESS,
 } from '../src'
 import { loadKeypairSignerFromFile } from 'gill/node'
@@ -260,6 +261,66 @@ describe('votingdapp', () => {
     const currentCandidate_2 = await fetchCandidateAccount(rpc, candidatePda_2)
     expect(currentCandidate_1.data.candidateName).toEqual(candidate_1)
     expect(currentCandidate_2.data.candidateName).toEqual(candidate_2)
+  })
+
+  it('should vote the candidate', async () => {
+    expect.assertions(9)
+    const pollId = 6n
+    const poll_name = 'sixth pool'
+    const poll_description = 'Desc of sixth pool (gill)'
+    const nowSec = BigInt(Math.floor(Date.now() / 1000))
+    const startTime = nowSec - 60n
+    const endTime = nowSec + 3600n
+
+    const [poolPda] = await getProgramDerivedAddress({
+      programAddress: VOTINGDAPP_PROGRAM_ADDRESS,
+      seeds: [Buffer.from('poll', 'utf8'), getU64Encoder().encode(pollId)],
+    })
+    const ix_poll = getInitializePoolInstruction({
+      signer: payer,
+      pollAccount: poolPda,
+      pollId,
+      name: poll_name,
+      description: poll_description,
+      startTime,
+      endTime,
+    })
+    const sx_poll = await sendAndConfirm({ ix: ix_poll, payer })
+    expect(sx_poll).toBeDefined()
+    const currentPool = await fetchPollAccount(rpc, poolPda)
+    expect(currentPool.data.pollId).toEqual(pollId)
+    expect(currentPool.data.pollName).toEqual(poll_name)
+
+    const candidate = 'Smooth'
+    const [candidatePda] = await getProgramDerivedAddress({
+      programAddress: VOTINGDAPP_PROGRAM_ADDRESS,
+      seeds: [getU64Encoder().encode(pollId), Buffer.from(candidate, 'utf8')],
+    })
+    const ix_candidate = getInitializeCandidateInstruction({
+      signer: payer,
+      pollAccount: poolPda,
+      candidateAccount: candidatePda,
+      pollId,
+      candidate,
+    })
+    const sx_candidate = await sendAndConfirm({ ix: ix_candidate, payer })
+    expect(sx_candidate).toBeDefined()
+    const currentCandidate = await fetchCandidateAccount(rpc, candidatePda)
+    expect(currentCandidate.data.candidateName).toEqual(candidate)
+    expect(currentCandidate.data.candidateVotes).toEqual(0n)
+
+    const ix_vote = getVoteInstruction({
+      signer: payer,
+      pollAccount: poolPda,
+      candidateAccount: candidatePda,
+      pollId,
+      candidate,
+    })
+    const sx_vote = await sendAndConfirm({ ix: ix_vote, payer })
+    expect(sx_vote).toBeDefined()
+    const updatedCandidate = await fetchCandidateAccount(rpc, candidatePda)
+    expect(updatedCandidate.data.candidateName).toEqual(candidate)
+    expect(updatedCandidate.data.candidateVotes).toEqual(1n)
   })
 })
 

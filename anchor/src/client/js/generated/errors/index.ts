@@ -6,7 +6,4 @@
  * @see https://github.com/codama-idl/codama
  */
 
-export * from './greet';
-export * from './initializeCandidate';
-export * from './initializePool';
-export * from './vote';
+export * from './votingdapp';

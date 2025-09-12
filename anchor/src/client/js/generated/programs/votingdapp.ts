@@ -17,6 +17,7 @@ import {
   type ParsedGreetInstruction,
   type ParsedInitializeCandidateInstruction,
   type ParsedInitializePoolInstruction,
+  type ParsedVoteInstruction,
 } from '../instructions';
 
 export const VOTINGDAPP_PROGRAM_ADDRESS =
@@ -62,6 +63,7 @@ export enum VotingdappInstruction {
   Greet,
   InitializeCandidate,
   InitializePool,
+  Vote,
 }
 
 export function identifyVotingdappInstruction(
@@ -101,6 +103,17 @@ export function identifyVotingdappInstruction(
   ) {
     return VotingdappInstruction.InitializePool;
   }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([227, 110, 155, 23, 136, 126, 172, 25])
+      ),
+      0
+    )
+  ) {
+    return VotingdappInstruction.Vote;
+  }
   throw new Error(
     'The provided instruction could not be identified as a votingdapp instruction.'
   );
@@ -117,4 +130,7 @@ export type ParsedVotingdappInstruction<
     } & ParsedInitializeCandidateInstruction<TProgram>)
   | ({
       instructionType: VotingdappInstruction.InitializePool;
-    } & ParsedInitializePoolInstruction<TProgram>);
+    } & ParsedInitializePoolInstruction<TProgram>)
+  | ({
+      instructionType: VotingdappInstruction.Vote;
+    } & ParsedVoteInstruction<TProgram>);

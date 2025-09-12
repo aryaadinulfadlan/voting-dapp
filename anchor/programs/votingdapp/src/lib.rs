@@ -45,12 +45,19 @@ pub mod votingdapp {
     }
 
     pub fn vote(
-        ctx: Context<Vote>,
-        _candidate_name: String,
-        _pool_id: u64
+        ctx: Context<Vote>, 
+        _poll_id: u64, 
+        _candidate: String
     ) -> Result<()> {
-        let candidate = &mut ctx.accounts.candidate;
-        candidate.candidate_votes += 1;
+        let candidate_account = &mut ctx.accounts.candidate_account;
+        let current_time = Clock::get()?.unix_timestamp;
+        if current_time > (ctx.accounts.poll_account.poll_voting_end as i64) {
+            return Err(ErrorCode::VotingEnded.into());
+        }
+        if current_time <= (ctx.accounts.poll_account.poll_voting_start as i64) {
+            return Err(ErrorCode::VotingNotStarted.into());
+        }
+        candidate_account.candidate_votes += 1;
         Ok(())
     }
 }
@@ -111,18 +118,28 @@ pub struct InitializeCandidate<'info> {
 }
 
 #[derive(Accounts)]
-#[instruction(candidate_name: String, pool_id: u64)]
+#[instruction(poll_id: u64, candidate: String)]
 pub struct Vote<'info> {
+    #[account(mut)]
     pub signer: Signer<'info>,
     #[account(
-        seeds = [pool_id.to_le_bytes().as_ref()],
+        mut,
+        seeds = [b"poll".as_ref(), poll_id.to_le_bytes().as_ref()],
         bump,
     )]
-    pub pool: Account<'info, Pool>,
+    pub poll_account: Account<'info, PollAccount>,
     #[account(
         mut,
-        seeds = [pool_id.to_le_bytes().as_ref(), candidate_name.as_bytes()],
-        bump,
+        seeds = [poll_id.to_le_bytes().as_ref(), candidate.as_ref()],
+        bump
     )]
-    pub candidate: Account<'info, Candidate>,
+    pub candidate_account: Account<'info, CandidateAccount>,
+}
+
+#[error_code]
+pub enum ErrorCode {
+    #[msg("Voting has not started yet")]
+    VotingNotStarted,
+    #[msg("Voting has ended")]
+    VotingEnded,
 }
