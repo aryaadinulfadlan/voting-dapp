@@ -38,7 +38,7 @@ describe('votingdapp', () => {
   })
 
   it('should initialize the poll', async () => {
-    expect.assertions(6)
+    expect.assertions(7)
     const pollId = 1n
     const name = 'Unit test pool'
     const description = 'Desc of unit test pool (gill)'
@@ -69,34 +69,197 @@ describe('votingdapp', () => {
     expect(currentPool.data.pollDescription).toEqual(description)
     expect(currentPool.data.pollVotingStart).toEqual(startTime)
     expect(currentPool.data.pollVotingEnd).toEqual(endTime)
+    expect(currentPool.data.pollOptionIndex).toEqual(0n)
   })
 
   it('should initialize the candidate', async () => {
-    expect.assertions(3)
-    const pollId = 1n
-    const candidate = 'John'
+    expect.assertions(5)
+    const pollId = 2n
+    const poll_name = 'second pool'
+    const poll_description = 'Desc of second pool (gill)'
+    const nowSec = BigInt(Math.floor(Date.now() / 1000))
+    const startTime = nowSec + 60n
+    const endTime = nowSec + 3600n
 
-    const [candidatePda] = await getProgramDerivedAddress({
-      programAddress: VOTINGDAPP_PROGRAM_ADDRESS,
-      seeds: [getU64Encoder().encode(pollId), Buffer.from(candidate, 'utf8')],
-    })
     const [poolPda] = await getProgramDerivedAddress({
       programAddress: VOTINGDAPP_PROGRAM_ADDRESS,
       seeds: [Buffer.from('poll', 'utf8'), getU64Encoder().encode(pollId)],
     })
-    const ix = getInitializeCandidateInstruction({
+    const ix_poll = getInitializePoolInstruction({
+      signer: payer,
+      pollAccount: poolPda,
+      pollId,
+      name: poll_name,
+      description: poll_description,
+      startTime,
+      endTime,
+    })
+    const sx_poll = await sendAndConfirm({ ix: ix_poll, payer })
+    expect(sx_poll).toBeDefined()
+    const currentPool = await fetchPollAccount(rpc, poolPda)
+    expect(currentPool.data.pollId).toEqual(pollId)
+    expect(currentPool.data.pollName).toEqual(poll_name)
+
+    const candidate = 'Smooth'
+    const [candidatePda] = await getProgramDerivedAddress({
+      programAddress: VOTINGDAPP_PROGRAM_ADDRESS,
+      seeds: [getU64Encoder().encode(pollId), Buffer.from(candidate, 'utf8')],
+    })
+    const ix_candidate = getInitializeCandidateInstruction({
       signer: payer,
       pollAccount: poolPda,
       candidateAccount: candidatePda,
       pollId,
       candidate,
     })
-    const sx = await sendAndConfirm({ ix, payer })
-    expect(sx).toBeDefined()
-    const currentPool = await fetchPollAccount(rpc, poolPda)
+    const sx_candidate = await sendAndConfirm({ ix: ix_candidate, payer })
+    expect(sx_candidate).toBeDefined()
     const currentCandidate = await fetchCandidateAccount(rpc, candidatePda)
-    expect(currentPool.data.pollId).toEqual(pollId)
     expect(currentCandidate.data.candidateName).toEqual(candidate)
+  })
+
+  it('should initialize two candidate for one poll', async () => {
+    expect.assertions(7)
+    const pollId = 3n
+    const poll_name = 'third pool'
+    const poll_description = 'Desc of third pool (gill)'
+    const nowSec = BigInt(Math.floor(Date.now() / 1000))
+    const startTime = nowSec + 60n
+    const endTime = nowSec + 3600n
+
+    const [poolPda] = await getProgramDerivedAddress({
+      programAddress: VOTINGDAPP_PROGRAM_ADDRESS,
+      seeds: [Buffer.from('poll', 'utf8'), getU64Encoder().encode(pollId)],
+    })
+    const ix_poll = getInitializePoolInstruction({
+      signer: payer,
+      pollAccount: poolPda,
+      pollId,
+      name: poll_name,
+      description: poll_description,
+      startTime,
+      endTime,
+    })
+    const sx_poll = await sendAndConfirm({ ix: ix_poll, payer })
+    expect(sx_poll).toBeDefined()
+    const currentPool = await fetchPollAccount(rpc, poolPda)
+    expect(currentPool.data.pollId).toEqual(pollId)
+    expect(currentPool.data.pollName).toEqual(poll_name)
+
+    const candidate_1 = 'Smooth'
+    const candidate_2 = 'Crunchy'
+    const [candidatePda_1] = await getProgramDerivedAddress({
+      programAddress: VOTINGDAPP_PROGRAM_ADDRESS,
+      seeds: [getU64Encoder().encode(pollId), Buffer.from(candidate_1, 'utf8')],
+    })
+    const [candidatePda_2] = await getProgramDerivedAddress({
+      programAddress: VOTINGDAPP_PROGRAM_ADDRESS,
+      seeds: [getU64Encoder().encode(pollId), Buffer.from(candidate_2, 'utf8')],
+    })
+    const ix_candidate_1 = getInitializeCandidateInstruction({
+      signer: payer,
+      pollAccount: poolPda,
+      candidateAccount: candidatePda_1,
+      pollId,
+      candidate: candidate_1,
+    })
+    const ix_candidate_2 = getInitializeCandidateInstruction({
+      signer: payer,
+      pollAccount: poolPda,
+      candidateAccount: candidatePda_2,
+      pollId,
+      candidate: candidate_2,
+    })
+    const sx_candidate_1 = await sendAndConfirm({ ix: ix_candidate_1, payer })
+    const sx_candidate_2 = await sendAndConfirm({ ix: ix_candidate_2, payer })
+    expect(sx_candidate_1).toBeDefined()
+    expect(sx_candidate_2).toBeDefined()
+    const currentCandidate_1 = await fetchCandidateAccount(rpc, candidatePda_1)
+    const currentCandidate_2 = await fetchCandidateAccount(rpc, candidatePda_2)
+    expect(currentCandidate_1.data.candidateName).toEqual(candidate_1)
+    expect(currentCandidate_2.data.candidateName).toEqual(candidate_2)
+  })
+
+  it('should initialize two candidate for two poll', async () => {
+    expect.assertions(10)
+    const pollId_1 = 4n
+    const pollId_2 = 5n
+    const poll_name = 'poll name'
+    const poll_description = 'Desc of poll (gill)'
+    const nowSec = BigInt(Math.floor(Date.now() / 1000))
+    const startTime = nowSec + 60n
+    const endTime = nowSec + 3600n
+
+    const [poolPda_1] = await getProgramDerivedAddress({
+      programAddress: VOTINGDAPP_PROGRAM_ADDRESS,
+      seeds: [Buffer.from('poll', 'utf8'), getU64Encoder().encode(pollId_1)],
+    })
+    const ix_poll_1 = getInitializePoolInstruction({
+      signer: payer,
+      pollAccount: poolPda_1,
+      pollId: pollId_1,
+      name: poll_name,
+      description: poll_description,
+      startTime,
+      endTime,
+    })
+    const [poolPda_2] = await getProgramDerivedAddress({
+      programAddress: VOTINGDAPP_PROGRAM_ADDRESS,
+      seeds: [Buffer.from('poll', 'utf8'), getU64Encoder().encode(pollId_2)],
+    })
+    const ix_poll_2 = getInitializePoolInstruction({
+      signer: payer,
+      pollAccount: poolPda_2,
+      pollId: pollId_2,
+      name: poll_name,
+      description: poll_description,
+      startTime,
+      endTime,
+    })
+    const sx_poll_1 = await sendAndConfirm({ ix: ix_poll_1, payer })
+    expect(sx_poll_1).toBeDefined()
+    const first_poll = await fetchPollAccount(rpc, poolPda_1)
+    expect(first_poll.data.pollId).toEqual(pollId_1)
+    expect(first_poll.data.pollName).toEqual(poll_name)
+
+    const sx_poll_2 = await sendAndConfirm({ ix: ix_poll_2, payer })
+    expect(sx_poll_2).toBeDefined()
+    const second_poll = await fetchPollAccount(rpc, poolPda_2)
+    expect(second_poll.data.pollId).toEqual(pollId_2)
+    expect(second_poll.data.pollName).toEqual(poll_name)
+
+    const candidate_1 = 'Smooth'
+    const candidate_2 = 'Crunchy'
+    const [candidatePda_1] = await getProgramDerivedAddress({
+      programAddress: VOTINGDAPP_PROGRAM_ADDRESS,
+      seeds: [getU64Encoder().encode(pollId_1), Buffer.from(candidate_1, 'utf8')],
+    })
+    const [candidatePda_2] = await getProgramDerivedAddress({
+      programAddress: VOTINGDAPP_PROGRAM_ADDRESS,
+      seeds: [getU64Encoder().encode(pollId_2), Buffer.from(candidate_2, 'utf8')],
+    })
+    const ix_candidate_1 = getInitializeCandidateInstruction({
+      signer: payer,
+      pollAccount: poolPda_1,
+      candidateAccount: candidatePda_1,
+      pollId: pollId_1,
+      candidate: candidate_1,
+    })
+    const ix_candidate_2 = getInitializeCandidateInstruction({
+      signer: payer,
+      pollAccount: poolPda_2,
+      candidateAccount: candidatePda_2,
+      pollId: pollId_2,
+      candidate: candidate_2,
+    })
+    const sx_candidate_1 = await sendAndConfirm({ ix: ix_candidate_1, payer })
+    const sx_candidate_2 = await sendAndConfirm({ ix: ix_candidate_2, payer })
+    expect(sx_candidate_1).toBeDefined()
+    expect(sx_candidate_2).toBeDefined()
+    const currentCandidate_1 = await fetchCandidateAccount(rpc, candidatePda_1)
+    const currentCandidate_2 = await fetchCandidateAccount(rpc, candidatePda_2)
+    expect(currentCandidate_1.data.candidateName).toEqual(candidate_1)
+    expect(currentCandidate_2.data.candidateName).toEqual(candidate_2)
   })
 })
 

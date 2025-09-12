@@ -28,6 +28,7 @@ pub mod votingdapp {
         poll_account.poll_description = description;
         poll_account.poll_voting_start = start_time;
         poll_account.poll_voting_end = end_time;
+        poll_account.poll_option_index = 0;
         Ok(())
     }
 
