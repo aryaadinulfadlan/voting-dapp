@@ -104,7 +104,11 @@ pub struct CandidateAccount {
 pub struct InitializeCandidate<'info> {
     #[account(mut)]
     pub signer: Signer<'info>,
-    #[account(mut)]
+    #[account(
+        mut,
+        seeds = [b"poll".as_ref(), poll_id.to_le_bytes().as_ref()],
+        bump,
+    )]
     pub poll_account: Account<'info, PollAccount>,
     #[account(
         init_if_needed,

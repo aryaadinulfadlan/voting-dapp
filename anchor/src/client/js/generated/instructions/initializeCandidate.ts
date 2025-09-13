@@ -133,7 +133,7 @@ export type InitializeCandidateAsyncInput<
   TAccountSystemProgram extends string = string,
 > = {
   signer: TransactionSigner<TAccountSigner>;
-  pollAccount: Address<TAccountPollAccount>;
+  pollAccount?: Address<TAccountPollAccount>;
   candidateAccount?: Address<TAccountCandidateAccount>;
   systemProgram?: Address<TAccountSystemProgram>;
   pollId: InitializeCandidateInstructionDataArgs['pollId'];
@@ -185,6 +185,15 @@ export async function getInitializeCandidateInstructionAsync<
   const args = { ...input };
 
   // Resolve default values.
+  if (!accounts.pollAccount.value) {
+    accounts.pollAccount.value = await getProgramDerivedAddress({
+      programAddress,
+      seeds: [
+        getBytesEncoder().encode(new Uint8Array([112, 111, 108, 108])),
+        getU64Encoder().encode(expectSome(args.pollId)),
+      ],
+    });
+  }
   if (!accounts.candidateAccount.value) {
     accounts.candidateAccount.value = await getProgramDerivedAddress({
       programAddress,

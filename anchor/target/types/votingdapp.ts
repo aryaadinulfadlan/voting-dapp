@@ -48,7 +48,24 @@ export type Votingdapp = {
         },
         {
           "name": "pollAccount",
-          "writable": true
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  108,
+                  108
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "pollId"
+              }
+            ]
+          }
         },
         {
           "name": "candidateAccount",
