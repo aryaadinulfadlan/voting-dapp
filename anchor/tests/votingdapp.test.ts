@@ -41,8 +41,8 @@ describe('votingdapp', () => {
   it('should initialize the poll', async () => {
     expect.assertions(7)
     const pollId = 1n
-    const name = 'Unit test pool'
-    const description = 'Desc of unit test pool (gill)'
+    const poll_name = 'The President of USA'
+    const poll_description = 'Description of USA President Election'
     const nowSec = BigInt(Math.floor(Date.now() / 1000))
     const startTime = nowSec + 60n
     const endTime = nowSec + 3600n
@@ -55,8 +55,8 @@ describe('votingdapp', () => {
       signer: payer,
       pollAccount: poolPda,
       pollId,
-      name,
-      description,
+      name: poll_name,
+      description: poll_description,
       startTime,
       endTime,
     })
@@ -66,18 +66,18 @@ describe('votingdapp', () => {
     // expect(accountInfo).not.toBeNull()
     const currentPool = await fetchPollAccount(rpc, poolPda)
     expect(currentPool.data.pollId).toEqual(pollId)
-    expect(currentPool.data.pollName).toEqual(name)
-    expect(currentPool.data.pollDescription).toEqual(description)
+    expect(currentPool.data.pollName).toEqual(poll_name)
+    expect(currentPool.data.pollDescription).toEqual(poll_description)
     expect(currentPool.data.pollVotingStart).toEqual(startTime)
     expect(currentPool.data.pollVotingEnd).toEqual(endTime)
     expect(currentPool.data.pollOptionIndex).toEqual(0n)
   })
 
   it('should initialize the candidate', async () => {
-    expect.assertions(5)
+    expect.assertions(7)
     const pollId = 2n
-    const poll_name = 'second pool'
-    const poll_description = 'Desc of second pool (gill)'
+    const poll_name = 'The President of USA'
+    const poll_description = 'Description of USA President Election'
     const nowSec = BigInt(Math.floor(Date.now() / 1000))
     const startTime = nowSec + 60n
     const endTime = nowSec + 3600n
@@ -100,8 +100,9 @@ describe('votingdapp', () => {
     const currentPool = await fetchPollAccount(rpc, poolPda)
     expect(currentPool.data.pollId).toEqual(pollId)
     expect(currentPool.data.pollName).toEqual(poll_name)
+    expect(currentPool.data.pollDescription).toEqual(poll_description)
 
-    const candidate = 'Smooth'
+    const candidate = 'John F. Kennedy'
     const [candidatePda] = await getProgramDerivedAddress({
       programAddress: VOTINGDAPP_PROGRAM_ADDRESS,
       seeds: [getU64Encoder().encode(pollId), Buffer.from(candidate, 'utf8')],
@@ -117,13 +118,14 @@ describe('votingdapp', () => {
     expect(sx_candidate).toBeDefined()
     const currentCandidate = await fetchCandidateAccount(rpc, candidatePda)
     expect(currentCandidate.data.candidateName).toEqual(candidate)
+    expect(currentCandidate.data.pollId).toEqual(pollId)
   })
 
   it('should initialize two candidate for one poll', async () => {
-    expect.assertions(7)
+    expect.assertions(9)
     const pollId = 3n
-    const poll_name = 'third pool'
-    const poll_description = 'Desc of third pool (gill)'
+    const poll_name = 'The President of USA'
+    const poll_description = 'Description of USA President Election'
     const nowSec = BigInt(Math.floor(Date.now() / 1000))
     const startTime = nowSec + 60n
     const endTime = nowSec + 3600n
@@ -147,8 +149,8 @@ describe('votingdapp', () => {
     expect(currentPool.data.pollId).toEqual(pollId)
     expect(currentPool.data.pollName).toEqual(poll_name)
 
-    const candidate_1 = 'Smooth'
-    const candidate_2 = 'Crunchy'
+    const candidate_1 = 'John F. Kennedy'
+    const candidate_2 = 'Bill Clinton'
     const [candidatePda_1] = await getProgramDerivedAddress({
       programAddress: VOTINGDAPP_PROGRAM_ADDRESS,
       seeds: [getU64Encoder().encode(pollId), Buffer.from(candidate_1, 'utf8')],
@@ -179,14 +181,16 @@ describe('votingdapp', () => {
     const currentCandidate_2 = await fetchCandidateAccount(rpc, candidatePda_2)
     expect(currentCandidate_1.data.candidateName).toEqual(candidate_1)
     expect(currentCandidate_2.data.candidateName).toEqual(candidate_2)
+    expect(currentCandidate_1.data.pollId).toEqual(pollId)
+    expect(currentCandidate_2.data.pollId).toEqual(pollId)
   })
 
   it('should initialize two candidate for two poll', async () => {
-    expect.assertions(10)
+    expect.assertions(12)
     const pollId_1 = 4n
     const pollId_2 = 5n
-    const poll_name = 'poll name'
-    const poll_description = 'Desc of poll (gill)'
+    const poll_name = 'The President of USA'
+    const poll_description = 'Description of USA President Election'
     const nowSec = BigInt(Math.floor(Date.now() / 1000))
     const startTime = nowSec + 60n
     const endTime = nowSec + 3600n
@@ -229,8 +233,8 @@ describe('votingdapp', () => {
     expect(second_poll.data.pollId).toEqual(pollId_2)
     expect(second_poll.data.pollName).toEqual(poll_name)
 
-    const candidate_1 = 'Smooth'
-    const candidate_2 = 'Crunchy'
+    const candidate_1 = 'John F. Kennedy'
+    const candidate_2 = 'Bill Clinton'
     const [candidatePda_1] = await getProgramDerivedAddress({
       programAddress: VOTINGDAPP_PROGRAM_ADDRESS,
       seeds: [getU64Encoder().encode(pollId_1), Buffer.from(candidate_1, 'utf8')],
@@ -261,13 +265,15 @@ describe('votingdapp', () => {
     const currentCandidate_2 = await fetchCandidateAccount(rpc, candidatePda_2)
     expect(currentCandidate_1.data.candidateName).toEqual(candidate_1)
     expect(currentCandidate_2.data.candidateName).toEqual(candidate_2)
+    expect(currentCandidate_1.data.pollId).toEqual(pollId_1)
+    expect(currentCandidate_2.data.pollId).toEqual(pollId_2)
   })
 
   it('should vote the candidate', async () => {
-    expect.assertions(9)
+    expect.assertions(11)
     const pollId = 6n
-    const poll_name = 'sixth pool'
-    const poll_description = 'Desc of sixth pool (gill)'
+    const poll_name = 'The President of USA'
+    const poll_description = 'Description of USA President Election'
     const nowSec = BigInt(Math.floor(Date.now() / 1000))
     const startTime = nowSec - 60n
     const endTime = nowSec + 3600n
@@ -291,7 +297,7 @@ describe('votingdapp', () => {
     expect(currentPool.data.pollId).toEqual(pollId)
     expect(currentPool.data.pollName).toEqual(poll_name)
 
-    const candidate = 'Smooth'
+    const candidate = 'John F. Kennedy'
     const [candidatePda] = await getProgramDerivedAddress({
       programAddress: VOTINGDAPP_PROGRAM_ADDRESS,
       seeds: [getU64Encoder().encode(pollId), Buffer.from(candidate, 'utf8')],
@@ -308,6 +314,7 @@ describe('votingdapp', () => {
     const currentCandidate = await fetchCandidateAccount(rpc, candidatePda)
     expect(currentCandidate.data.candidateName).toEqual(candidate)
     expect(currentCandidate.data.candidateVotes).toEqual(0n)
+    expect(currentCandidate.data.pollId).toEqual(pollId)
 
     const ix_vote = getVoteInstruction({
       signer: payer,
@@ -321,6 +328,7 @@ describe('votingdapp', () => {
     const updatedCandidate = await fetchCandidateAccount(rpc, candidatePda)
     expect(updatedCandidate.data.candidateName).toEqual(candidate)
     expect(updatedCandidate.data.candidateVotes).toEqual(1n)
+    expect(currentCandidate.data.pollId).toEqual(pollId)
   })
 })
 

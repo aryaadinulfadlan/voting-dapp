@@ -281,6 +281,10 @@ export type Votingdapp = {
         "kind": "struct",
         "fields": [
           {
+            "name": "pollId",
+            "type": "u64"
+          },
+          {
             "name": "candidateName",
             "type": "string"
           },

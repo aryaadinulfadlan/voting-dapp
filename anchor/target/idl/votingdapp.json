@@ -84,7 +84,7 @@
       ],
       "args": [
         {
-          "name": "_poll_id",
+          "name": "poll_id",
           "type": "u64"
         },
         {
@@ -274,6 +274,10 @@
       "type": {
         "kind": "struct",
         "fields": [
+          {
+            "name": "poll_id",
+            "type": "u64"
+          },
           {
             "name": "candidate_name",
             "type": "string"

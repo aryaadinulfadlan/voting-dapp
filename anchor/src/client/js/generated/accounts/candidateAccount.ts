@@ -53,11 +53,13 @@ export function getCandidateAccountDiscriminatorBytes() {
 
 export type CandidateAccount = {
   discriminator: ReadonlyUint8Array;
+  pollId: bigint;
   candidateName: string;
   candidateVotes: bigint;
 };
 
 export type CandidateAccountArgs = {
+  pollId: number | bigint;
   candidateName: string;
   candidateVotes: number | bigint;
 };
@@ -66,6 +68,7 @@ export function getCandidateAccountEncoder(): Encoder<CandidateAccountArgs> {
   return transformEncoder(
     getStructEncoder([
       ['discriminator', fixEncoderSize(getBytesEncoder(), 8)],
+      ['pollId', getU64Encoder()],
       [
         'candidateName',
         addEncoderSizePrefix(getUtf8Encoder(), getU32Encoder()),
@@ -79,6 +82,7 @@ export function getCandidateAccountEncoder(): Encoder<CandidateAccountArgs> {
 export function getCandidateAccountDecoder(): Decoder<CandidateAccount> {
   return getStructDecoder([
     ['discriminator', fixDecoderSize(getBytesDecoder(), 8)],
+    ['pollId', getU64Decoder()],
     ['candidateName', addDecoderSizePrefix(getUtf8Decoder(), getU32Decoder())],
     ['candidateVotes', getU64Decoder()],
   ]);

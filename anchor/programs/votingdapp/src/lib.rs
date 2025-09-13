@@ -34,12 +34,13 @@ pub mod votingdapp {
 
     pub fn initialize_candidate(
         ctx: Context<InitializeCandidate>,
-        _poll_id: u64,
+        poll_id: u64,
         candidate: String,
     ) -> Result<()> {
         let candidate_account = &mut ctx.accounts.candidate_account;
         let poll_account = &mut ctx.accounts.poll_account;
         candidate_account.candidate_name = candidate;
+        candidate_account.poll_id = poll_id;
         poll_account.poll_option_index += 1;
         Ok(())
     }
@@ -80,7 +81,7 @@ pub struct InitializePoll<'info> {
     #[account(mut)]
     pub signer: Signer<'info>,
     #[account(
-        init_if_needed,
+        init,
         payer = signer,
         space = 8 + PollAccount::INIT_SPACE,
         seeds = [b"poll".as_ref(), poll_id.to_le_bytes().as_ref()],
@@ -89,12 +90,11 @@ pub struct InitializePoll<'info> {
     pub poll_account: Account<'info, PollAccount>,
     pub system_program: Program<'info, System>,
 }
-// seeds = [b"pool".as_ref(), signer.key().as_ref()],
-// seeds = [poll_id.to_le_bytes().as_ref()],
 
 #[account]
 #[derive(InitSpace)]
 pub struct CandidateAccount {
+    pub poll_id: u64,
     #[max_len(20)]
     pub candidate_name: String,
     pub candidate_votes: u64,
@@ -111,7 +111,7 @@ pub struct InitializeCandidate<'info> {
     )]
     pub poll_account: Account<'info, PollAccount>,
     #[account(
-        init_if_needed,
+        init,
         payer = signer,
         space = 8 + CandidateAccount::INIT_SPACE,
         seeds = [poll_id.to_le_bytes().as_ref(), candidate.as_ref()],
