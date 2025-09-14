@@ -12,6 +12,7 @@ import {
   combineCodec,
   fixDecoderSize,
   fixEncoderSize,
+  getAddressEncoder,
   getBytesDecoder,
   getBytesEncoder,
   getProgramDerivedAddress,
@@ -41,6 +42,7 @@ import {
 } from 'gill';
 import { VOTINGDAPP_PROGRAM_ADDRESS } from '../programs';
 import {
+  expectAddress,
   expectSome,
   getAccountMetaFactory,
   type ResolvedAccount,
@@ -59,6 +61,10 @@ export type VoteInstruction<
   TAccountSigner extends string | AccountMeta<string> = string,
   TAccountPollAccount extends string | AccountMeta<string> = string,
   TAccountCandidateAccount extends string | AccountMeta<string> = string,
+  TAccountVoterAccount extends string | AccountMeta<string> = string,
+  TAccountSystemProgram extends
+    | string
+    | AccountMeta<string> = '11111111111111111111111111111111',
   TRemainingAccounts extends readonly AccountMeta<string>[] = [],
 > = Instruction<TProgram> &
   InstructionWithData<ReadonlyUint8Array> &
@@ -74,6 +80,12 @@ export type VoteInstruction<
       TAccountCandidateAccount extends string
         ? WritableAccount<TAccountCandidateAccount>
         : TAccountCandidateAccount,
+      TAccountVoterAccount extends string
+        ? WritableAccount<TAccountVoterAccount>
+        : TAccountVoterAccount,
+      TAccountSystemProgram extends string
+        ? ReadonlyAccount<TAccountSystemProgram>
+        : TAccountSystemProgram,
       ...TRemainingAccounts,
     ]
   >;
@@ -122,10 +134,14 @@ export type VoteAsyncInput<
   TAccountSigner extends string = string,
   TAccountPollAccount extends string = string,
   TAccountCandidateAccount extends string = string,
+  TAccountVoterAccount extends string = string,
+  TAccountSystemProgram extends string = string,
 > = {
   signer: TransactionSigner<TAccountSigner>;
   pollAccount?: Address<TAccountPollAccount>;
   candidateAccount?: Address<TAccountCandidateAccount>;
+  voterAccount?: Address<TAccountVoterAccount>;
+  systemProgram?: Address<TAccountSystemProgram>;
   pollId: VoteInstructionDataArgs['pollId'];
   candidate: VoteInstructionDataArgs['candidate'];
 };
@@ -134,12 +150,16 @@ export async function getVoteInstructionAsync<
   TAccountSigner extends string,
   TAccountPollAccount extends string,
   TAccountCandidateAccount extends string,
+  TAccountVoterAccount extends string,
+  TAccountSystemProgram extends string,
   TProgramAddress extends Address = typeof VOTINGDAPP_PROGRAM_ADDRESS,
 >(
   input: VoteAsyncInput<
     TAccountSigner,
     TAccountPollAccount,
-    TAccountCandidateAccount
+    TAccountCandidateAccount,
+    TAccountVoterAccount,
+    TAccountSystemProgram
   >,
   config?: { programAddress?: TProgramAddress }
 ): Promise<
@@ -147,7 +167,9 @@ export async function getVoteInstructionAsync<
     TProgramAddress,
     TAccountSigner,
     TAccountPollAccount,
-    TAccountCandidateAccount
+    TAccountCandidateAccount,
+    TAccountVoterAccount,
+    TAccountSystemProgram
   >
 > {
   // Program address.
@@ -161,6 +183,8 @@ export async function getVoteInstructionAsync<
       value: input.candidateAccount ?? null,
       isWritable: true,
     },
+    voterAccount: { value: input.voterAccount ?? null, isWritable: true },
+    systemProgram: { value: input.systemProgram ?? null, isWritable: false },
   };
   const accounts = originalAccounts as Record<
     keyof typeof originalAccounts,
@@ -191,6 +215,20 @@ export async function getVoteInstructionAsync<
       ],
     });
   }
+  if (!accounts.voterAccount.value) {
+    accounts.voterAccount.value = await getProgramDerivedAddress({
+      programAddress,
+      seeds: [
+        getBytesEncoder().encode(new Uint8Array([118, 111, 116, 101, 114])),
+        getU64Encoder().encode(expectSome(args.pollId)),
+        getAddressEncoder().encode(expectAddress(accounts.signer.value)),
+      ],
+    });
+  }
+  if (!accounts.systemProgram.value) {
+    accounts.systemProgram.value =
+      '11111111111111111111111111111111' as Address<'11111111111111111111111111111111'>;
+  }
 
   const getAccountMeta = getAccountMetaFactory(programAddress, 'programId');
   const instruction = {
@@ -198,6 +236,8 @@ export async function getVoteInstructionAsync<
       getAccountMeta(accounts.signer),
       getAccountMeta(accounts.pollAccount),
       getAccountMeta(accounts.candidateAccount),
+      getAccountMeta(accounts.voterAccount),
+      getAccountMeta(accounts.systemProgram),
     ],
     programAddress,
     data: getVoteInstructionDataEncoder().encode(
@@ -207,7 +247,9 @@ export async function getVoteInstructionAsync<
     TProgramAddress,
     TAccountSigner,
     TAccountPollAccount,
-    TAccountCandidateAccount
+    TAccountCandidateAccount,
+    TAccountVoterAccount,
+    TAccountSystemProgram
   >;
 
   return instruction;
@@ -217,10 +259,14 @@ export type VoteInput<
   TAccountSigner extends string = string,
   TAccountPollAccount extends string = string,
   TAccountCandidateAccount extends string = string,
+  TAccountVoterAccount extends string = string,
+  TAccountSystemProgram extends string = string,
 > = {
   signer: TransactionSigner<TAccountSigner>;
   pollAccount: Address<TAccountPollAccount>;
   candidateAccount: Address<TAccountCandidateAccount>;
+  voterAccount: Address<TAccountVoterAccount>;
+  systemProgram?: Address<TAccountSystemProgram>;
   pollId: VoteInstructionDataArgs['pollId'];
   candidate: VoteInstructionDataArgs['candidate'];
 };
@@ -229,19 +275,25 @@ export function getVoteInstruction<
   TAccountSigner extends string,
   TAccountPollAccount extends string,
   TAccountCandidateAccount extends string,
+  TAccountVoterAccount extends string,
+  TAccountSystemProgram extends string,
   TProgramAddress extends Address = typeof VOTINGDAPP_PROGRAM_ADDRESS,
 >(
   input: VoteInput<
     TAccountSigner,
     TAccountPollAccount,
-    TAccountCandidateAccount
+    TAccountCandidateAccount,
+    TAccountVoterAccount,
+    TAccountSystemProgram
   >,
   config?: { programAddress?: TProgramAddress }
 ): VoteInstruction<
   TProgramAddress,
   TAccountSigner,
   TAccountPollAccount,
-  TAccountCandidateAccount
+  TAccountCandidateAccount,
+  TAccountVoterAccount,
+  TAccountSystemProgram
 > {
   // Program address.
   const programAddress = config?.programAddress ?? VOTINGDAPP_PROGRAM_ADDRESS;
@@ -254,6 +306,8 @@ export function getVoteInstruction<
       value: input.candidateAccount ?? null,
       isWritable: true,
     },
+    voterAccount: { value: input.voterAccount ?? null, isWritable: true },
+    systemProgram: { value: input.systemProgram ?? null, isWritable: false },
   };
   const accounts = originalAccounts as Record<
     keyof typeof originalAccounts,
@@ -263,12 +317,20 @@ export function getVoteInstruction<
   // Original args.
   const args = { ...input };
 
+  // Resolve default values.
+  if (!accounts.systemProgram.value) {
+    accounts.systemProgram.value =
+      '11111111111111111111111111111111' as Address<'11111111111111111111111111111111'>;
+  }
+
   const getAccountMeta = getAccountMetaFactory(programAddress, 'programId');
   const instruction = {
     accounts: [
       getAccountMeta(accounts.signer),
       getAccountMeta(accounts.pollAccount),
       getAccountMeta(accounts.candidateAccount),
+      getAccountMeta(accounts.voterAccount),
+      getAccountMeta(accounts.systemProgram),
     ],
     programAddress,
     data: getVoteInstructionDataEncoder().encode(
@@ -278,7 +340,9 @@ export function getVoteInstruction<
     TProgramAddress,
     TAccountSigner,
     TAccountPollAccount,
-    TAccountCandidateAccount
+    TAccountCandidateAccount,
+    TAccountVoterAccount,
+    TAccountSystemProgram
   >;
 
   return instruction;
@@ -293,6 +357,8 @@ export type ParsedVoteInstruction<
     signer: TAccountMetas[0];
     pollAccount: TAccountMetas[1];
     candidateAccount: TAccountMetas[2];
+    voterAccount: TAccountMetas[3];
+    systemProgram: TAccountMetas[4];
   };
   data: VoteInstructionData;
 };
@@ -305,7 +371,7 @@ export function parseVoteInstruction<
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>
 ): ParsedVoteInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 3) {
+  if (instruction.accounts.length < 5) {
     // TODO: Coded error.
     throw new Error('Not enough accounts');
   }
@@ -321,6 +387,8 @@ export function parseVoteInstruction<
       signer: getNextAccount(),
       pollAccount: getNextAccount(),
       candidateAccount: getNextAccount(),
+      voterAccount: getNextAccount(),
+      systemProgram: getNextAccount(),
     },
     data: getVoteInstructionDataDecoder().decode(instruction.data),
   };

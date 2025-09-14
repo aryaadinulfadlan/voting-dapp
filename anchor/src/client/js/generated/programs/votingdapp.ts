@@ -26,6 +26,7 @@ export const VOTINGDAPP_PROGRAM_ADDRESS =
 export enum VotingdappAccount {
   CandidateAccount,
   PollAccount,
+  VoterAccount,
 }
 
 export function identifyVotingdappAccount(
@@ -53,6 +54,17 @@ export function identifyVotingdappAccount(
     )
   ) {
     return VotingdappAccount.PollAccount;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([24, 202, 161, 124, 196, 184, 105, 236])
+      ),
+      0
+    )
+  ) {
+    return VotingdappAccount.VoterAccount;
   }
   throw new Error(
     'The provided account could not be identified as a votingdapp account.'

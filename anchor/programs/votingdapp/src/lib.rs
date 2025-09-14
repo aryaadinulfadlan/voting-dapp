@@ -47,11 +47,12 @@ pub mod votingdapp {
 
     pub fn vote(
         ctx: Context<Vote>, 
-        _poll_id: u64, 
+        poll_id: u64, 
         _candidate: String
     ) -> Result<()> {
-        let candidate_account = &mut ctx.accounts.candidate_account;
         let poll_account = &ctx.accounts.poll_account;
+        let candidate_account = &mut ctx.accounts.candidate_account;
+        let voter_account = &mut ctx.accounts.voter_account;
         let current_time = Clock::get()?.unix_timestamp;
         if current_time > (poll_account.poll_voting_end as i64) {
             return Err(ErrorCode::VotingEnded.into());
@@ -59,6 +60,10 @@ pub mod votingdapp {
         if current_time <= (poll_account.poll_voting_start as i64) {
             return Err(ErrorCode::VotingNotStarted.into());
         }
+        voter_account.poll_id = poll_id;
+        voter_account.voter_pubkey = ctx.accounts.signer.key();
+        voter_account.chosen_candidate = candidate_account.key();
+        voter_account.timestamp = current_time;
         candidate_account.candidate_votes += 1;
         Ok(())
     }
@@ -138,8 +143,24 @@ pub struct Vote<'info> {
         bump
     )]
     pub candidate_account: Account<'info, CandidateAccount>,
+    #[account(
+        init,
+        payer = signer,
+        space = 8 + VoterAccount::INIT_SPACE,
+        seeds = [b"voter".as_ref(), poll_id.to_le_bytes().as_ref(), signer.key().as_ref()],
+        bump
+    )]
+    pub voter_account: Account<'info, VoterAccount>,
+    pub system_program: Program<'info, System>,
 }
-
+#[account]
+#[derive(InitSpace)]
+pub struct VoterAccount {
+    pub voter_pubkey: Pubkey,       
+    pub poll_id: u64,      
+    pub chosen_candidate: Pubkey,   
+    pub timestamp: i64,
+}
 #[error_code]
 pub enum ErrorCode {
     #[msg("Voting has not started yet")]

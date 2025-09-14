@@ -219,6 +219,36 @@ export type Votingdapp = {
               }
             ]
           }
+        },
+        {
+          "name": "voterAccount",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  111,
+                  116,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "pollId"
+              },
+              {
+                "kind": "account",
+                "path": "signer"
+              }
+            ]
+          }
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
         }
       ],
       "args": [
@@ -258,6 +288,19 @@ export type Votingdapp = {
         74,
         172,
         45
+      ]
+    },
+    {
+      "name": "voterAccount",
+      "discriminator": [
+        24,
+        202,
+        161,
+        124,
+        196,
+        184,
+        105,
+        236
       ]
     }
   ],
@@ -322,6 +365,30 @@ export type Votingdapp = {
           {
             "name": "pollOptionIndex",
             "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "voterAccount",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "voterPubkey",
+            "type": "pubkey"
+          },
+          {
+            "name": "pollId",
+            "type": "u64"
+          },
+          {
+            "name": "chosenCandidate",
+            "type": "pubkey"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
           }
         ]
       }

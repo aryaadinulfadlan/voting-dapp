@@ -8,3 +8,4 @@
 
 export * from './candidateAccount';
 export * from './pollAccount';
+export * from './voterAccount';

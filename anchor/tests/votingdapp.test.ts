@@ -2,6 +2,7 @@ import {
   Blockhash,
   createSolanaClient,
   createTransaction,
+  getAddressEncoder,
   getProgramDerivedAddress,
   getU64Encoder,
   Instruction,
@@ -11,6 +12,7 @@ import {
 import {
   fetchCandidateAccount,
   fetchPollAccount,
+  fetchVoterAccount,
   getGreetInstruction,
   getInitializeCandidateInstruction,
   getInitializePoolInstruction,
@@ -270,7 +272,7 @@ describe('votingdapp', () => {
   })
 
   it('should vote the candidate', async () => {
-    expect.assertions(11)
+    expect.assertions(14)
     const pollId = 6n
     const poll_name = 'The President of USA'
     const poll_description = 'Description of USA President Election'
@@ -316,10 +318,15 @@ describe('votingdapp', () => {
     expect(currentCandidate.data.candidateVotes).toEqual(0n)
     expect(currentCandidate.data.pollId).toEqual(pollId)
 
+    const [voterPda] = await getProgramDerivedAddress({
+      programAddress: VOTINGDAPP_PROGRAM_ADDRESS,
+      seeds: [Buffer.from('voter', 'utf8'), getU64Encoder().encode(pollId), getAddressEncoder().encode(payer.address)],
+    })
     const ix_vote = getVoteInstruction({
       signer: payer,
       pollAccount: poolPda,
       candidateAccount: candidatePda,
+      voterAccount: voterPda,
       pollId,
       candidate,
     })
@@ -329,6 +336,11 @@ describe('votingdapp', () => {
     expect(updatedCandidate.data.candidateName).toEqual(candidate)
     expect(updatedCandidate.data.candidateVotes).toEqual(1n)
     expect(currentCandidate.data.pollId).toEqual(pollId)
+
+    const currentVoter = await fetchVoterAccount(rpc, voterPda)
+    expect(currentVoter.data.pollId).toEqual(pollId)
+    expect(currentVoter.data.voterPubkey).toEqual(payer.address)
+    expect(currentVoter.data.chosenCandidate).toEqual(candidatePda)
   })
 })
 
