@@ -180,7 +180,6 @@
         },
         {
           "name": "poll_account",
-          "writable": true,
           "pda": {
             "seeds": [
               {

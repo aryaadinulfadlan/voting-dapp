@@ -33,6 +33,7 @@ import {
   type Instruction,
   type InstructionWithAccounts,
   type InstructionWithData,
+  type ReadonlyAccount,
   type ReadonlyUint8Array,
   type TransactionSigner,
   type WritableAccount,
@@ -68,7 +69,7 @@ export type VoteInstruction<
             AccountSignerMeta<TAccountSigner>
         : TAccountSigner,
       TAccountPollAccount extends string
-        ? WritableAccount<TAccountPollAccount>
+        ? ReadonlyAccount<TAccountPollAccount>
         : TAccountPollAccount,
       TAccountCandidateAccount extends string
         ? WritableAccount<TAccountCandidateAccount>
@@ -155,7 +156,7 @@ export async function getVoteInstructionAsync<
   // Original accounts.
   const originalAccounts = {
     signer: { value: input.signer ?? null, isWritable: true },
-    pollAccount: { value: input.pollAccount ?? null, isWritable: true },
+    pollAccount: { value: input.pollAccount ?? null, isWritable: false },
     candidateAccount: {
       value: input.candidateAccount ?? null,
       isWritable: true,
@@ -248,7 +249,7 @@ export function getVoteInstruction<
   // Original accounts.
   const originalAccounts = {
     signer: { value: input.signer ?? null, isWritable: true },
-    pollAccount: { value: input.pollAccount ?? null, isWritable: true },
+    pollAccount: { value: input.pollAccount ?? null, isWritable: false },
     candidateAccount: {
       value: input.candidateAccount ?? null,
       isWritable: true,

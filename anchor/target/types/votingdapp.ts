@@ -186,7 +186,6 @@ export type Votingdapp = {
         },
         {
           "name": "pollAccount",
-          "writable": true,
           "pda": {
             "seeds": [
               {
